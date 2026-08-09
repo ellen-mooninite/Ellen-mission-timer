@@ -331,6 +331,18 @@
   'use strict';
 
   /* ============================================================
+     0. 設定 — 想調時間只要改這裡，不要散到下面的程式碼裡
+     ============================================================ */
+
+  const MINUTES       = 25;   // 一次任務的長度（分鐘）
+  const WARN_MINS     = 1;    // 剩下幾分鐘開始警示（星球轉紅、岩漿噴發）
+  const CRITICAL_SECS = 10;   // 剩下幾秒開始閃爍數字
+
+  const TOTAL       = MINUTES       * 60 * 1000;
+  const WARN_MS     = WARN_MINS     * 60 * 1000;
+  const CRITICAL_MS = CRITICAL_SECS      * 1000;
+
+  /* ============================================================
      1. 星空 — 座標載入時算一次就凍結，之後任何重繪（resize、換星球）
         都只是拿同一組數字乘上畫布尺寸，所以星星不會跳動
      ============================================================ */
@@ -718,8 +730,6 @@
      4. 計時器
      ============================================================ */
 
-  const TOTAL = 25 * 60 * 1000;
-
   const elMM = document.getElementById('mm');
   const elSS = document.getElementById('ss');
   const elStatus = document.getElementById('status');
@@ -737,7 +747,6 @@
 
   /* ---- 最後一分鐘警示：紅色星球 + 沿地平線噴發的岩漿 ---- */
 
-  const WARN_MS = 60 * 1000;
   const REDUCE_MOTION = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1072,7 +1081,7 @@
     planetLevel = devilOn ? 1 : Math.pow(urgency, 1.9);
     setWarning(warn);
     applyAccent(warnLevel);
-    document.body.classList.toggle('is-critical', remaining > 0 && remaining <= 10000);
+    document.body.classList.toggle('is-critical', remaining > 0 && remaining <= CRITICAL_MS);
 
     // 靜態偏好下沒有 rAF 迴圈，紅色濃度改在這裡寫
     if (REDUCE_MOTION) warnCv.style.opacity = devilOn ? '1' : planetLevel.toFixed(3);
