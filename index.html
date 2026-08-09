@@ -89,12 +89,26 @@
   .clock .sep{margin:0 .16em;opacity:.9}
   body.is-done .clock{color:var(--accent)}
 
+  /* ---------- 日出日落 ---------- */
+  .sun{
+    margin:clamp(14px,2.6vh,24px) 0 0;
+    min-height:1.3em;                 /* 先佔位，資料回來時畫面不會跳動 */
+    font-size:clamp(12px,1.6vw,15px);
+    letter-spacing:.18em;
+    text-indent:.18em;
+    color:var(--muted);
+    transition:color .3s ease,opacity .3s ease;
+    opacity:0;
+  }
+  .sun.is-ready{opacity:1}
+  .sun.is-offline{color:#5A6878;opacity:1}
+
   /* ---------- 進度條 + 火箭 ---------- */
   .track{
     --p:0;
     position:relative;
     width:min(560px,70vw);
-    margin-top:clamp(30px,7.5vh,72px);
+    margin-top:clamp(22px,5.2vh,54px);
     height:24px;
   }
   .track-line{
@@ -201,6 +215,8 @@
 
 <main class="hud">
   <h1 class="clock" id="clock"><span id="mm">25</span><span class="sep">:</span><span id="ss">00</span></h1>
+
+  <p class="sun" id="sun" aria-live="polite"></p>
 
   <div class="track" id="track">
     <div class="track-line"></div>
@@ -618,6 +634,52 @@
 
   render();
   setPhase('idle');
+
+  /* ============================================================
+     5. 今日台北日出／日落
+     取不到就顯示「離線」；這一段全程包在 try/catch 裡，
+     不論網路失敗、逾時或回傳格式怪異，都不會影響計時器與背景
+     ============================================================ */
+
+  const elSun = document.getElementById('sun');
+  const SUN_URL = 'https://api.open-meteo.com/v1/forecast' +
+    '?latitude=25.03&longitude=121.56&daily=sunrise,sunset' +
+    '&timezone=Asia/Taipei&forecast_days=1';
+
+  // 回傳格式是 "2026-08-09T05:23"，已經是台北當地時間，直接取字串不要再轉時區
+  function hhmm(iso){
+    const m = /T(\d{2}:\d{2})/.exec(String(iso));
+    return m ? m[1] : null;
+  }
+
+  function sunOffline(){
+    elSun.textContent = '離線';
+    elSun.classList.remove('is-ready');
+    elSun.classList.add('is-offline');
+  }
+
+  async function loadSun(){
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000);   // 卡住不要無限等
+    try {
+      const res = await fetch(SUN_URL, { signal: ctrl.signal, cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const daily = data && data.daily;
+      const rise = hhmm(daily && daily.sunrise && daily.sunrise[0]);
+      const set  = hhmm(daily && daily.sunset  && daily.sunset[0]);
+      if (!rise || !set) throw new Error('unexpected payload');
+      elSun.textContent = '日出 ' + rise + ' ／ 日落 ' + set;
+      elSun.classList.remove('is-offline');
+      elSun.classList.add('is-ready');
+    } catch (err) {
+      sunOffline();
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  try { loadSun(); } catch (err) { sunOffline(); }
 })();
 </script>
 </body>
