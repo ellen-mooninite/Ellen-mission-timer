@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# 本機工具設定（含個人偏好與權限，不要公開）
+.claude/settings.local.json
+
+# Vercel 連結資訊（含 project / org ID）
+.vercel
+
+# 環境變數與金鑰
+.env
+.env.*
+*.pem
+*.key
+
+# 相依套件
+node_modules/
